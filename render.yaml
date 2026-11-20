@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: galaxia-amorosa
+    env: static
+    buildCommand: echo "Sitio estatico, sin build"
+    staticPublishPath: .
