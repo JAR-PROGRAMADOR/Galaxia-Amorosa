@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Galaxy Heart 3D</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: #000;
+    }
+
+    body {
+      color: #fff6ff;
+      font-family: Georgia, "Times New Roman", serif;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .copyright {
+      position: fixed;
+      right: 18px;
+      bottom: 14px;
+      color: rgba(255, 220, 247, .34);
+      font: 10px "Palatino Linotype", "Book Antiqua", Georgia, serif;
+      letter-spacing: .08em;
+      pointer-events: none;
+    }
+
+    .intro {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: radial-gradient(circle at 50% 42%, #4c326d 0, #211a43 42%, #0d0c22 100%);
+      transition: opacity .9s ease, visibility .9s ease;
+    }
+
+    .intro.is-hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .intro-card {
+      width: min(420px, 92vw);
+      padding: 34px 28px 30px;
+      border: 1px solid rgba(255, 232, 255, .25);
+      border-radius: 18px;
+      background: rgba(37, 27, 60, .58);
+      box-shadow: 0 24px 80px rgba(0, 0, 0, .32), inset 0 1px rgba(255, 255, 255, .12);
+      text-align: center;
+      backdrop-filter: blur(12px);
+    }
+
+    .intro-card h1 {
+      margin: 0 0 26px;
+      color: #fff4ff;
+      font-size: clamp(38px, 9vw, 58px);
+      font-weight: 700;
+      letter-spacing: -.03em;
+      text-shadow: 0 3px 18px rgba(255, 168, 233, .45);
+    }
+
+    .intro-card p {
+      margin: 22px 0 20px;
+      color: rgba(255, 231, 251, .72);
+      font-size: 11px;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+    }
+
+    .start-button {
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 42px;
+      color: #fff;
+      background: linear-gradient(135deg, #ed8bc9, #a95d9e);
+      box-shadow: 0 8px 22px rgba(238, 132, 203, .32);
+      cursor: pointer;
+      font: 700 13px Georgia, serif;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      transition: transform .2s ease, box-shadow .2s ease;
+    }
+
+    .start-button:hover {
+      transform: translateY(-2px) scale(1.03);
+      box-shadow: 0 12px 28px rgba(238, 132, 203, .48);
+    }
+
+    .bears {
+      position: relative;
+      width: 230px;
+      height: 142px;
+      margin: 0 auto;
+    }
+
+    .bear {
+      position: absolute;
+      bottom: 4px;
+      width: 92px;
+      height: 110px;
+      animation: bear-bob 2.4s ease-in-out infinite;
+    }
+
+    .bear.left { left: 23px; transform-origin: bottom right; }
+    .bear.right { right: 23px; animation-delay: -.6s; transform-origin: bottom left; }
+
+    .bear-head {
+      position: absolute;
+      top: 8px;
+      left: 10px;
+      width: 72px;
+      height: 68px;
+      border-radius: 48% 48% 45% 45%;
+      background: #fffaf0;
+      box-shadow: inset -8px -8px rgba(218, 185, 153, .2);
+    }
+
+    .bear.right .bear-head { background: #c98d52; box-shadow: inset -8px -8px rgba(102, 53, 22, .16); }
+
+    .ear {
+      position: absolute;
+      top: -9px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: inherit;
+      border: 3px solid rgba(62, 30, 41, .16);
+    }
+
+    .ear.left { left: -3px; }
+    .ear.right { right: -3px; }
+
+    .bear-face {
+      position: absolute;
+      top: 31px;
+      left: 24px;
+      width: 7px;
+      height: 9px;
+      border-radius: 50%;
+      background: #3e2030;
+      box-shadow: 24px 0 #3e2030;
+    }
+
+    .bear-face::after {
+      content: "";
+      position: absolute;
+      top: 12px;
+      left: 8px;
+      width: 14px;
+      height: 9px;
+      border-bottom: 2px solid #3e2030;
+      border-radius: 50%;
+    }
+
+    .bear-body {
+      position: absolute;
+      bottom: 0;
+      left: 17px;
+      width: 60px;
+      height: 58px;
+      border-radius: 45% 45% 35% 35%;
+      background: #fffaf0;
+    }
+
+    .bear.right .bear-body { background: #c98d52; }
+
+    .hug-arm {
+      position: absolute;
+      z-index: 2;
+      top: 62px;
+      width: 52px;
+      height: 17px;
+      border-radius: 20px;
+      background: #fffaf0;
+      transform: rotate(24deg);
+    }
+
+    .bear.right .hug-arm { right: -7px; background: #c98d52; transform: rotate(156deg); }
+
+    .heart-kiss {
+      position: absolute;
+      top: -12px;
+      left: 104px;
+      color: #c18aff;
+      font-size: 25px;
+      animation: heart-float 1.8s ease-in-out infinite;
+    }
+
+    @keyframes bear-bob {
+      0%, 100% { transform: translateY(0) rotate(-3deg); }
+      50% { transform: translateY(-5px) rotate(3deg); }
+    }
+
+    @keyframes heart-float {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-8px) scale(1.12); }
+    }
+  </style>
+</head>
+<body>
+  <section class="intro" id="intro">
+    <div class="intro-card">
+      <h1>Galaxy Gallery</h1>
+      <div class="bears" aria-label="Dos ositos abrazándose">
+        <div class="bear left">
+          <div class="bear-head"><i class="ear left"></i><i class="ear right"></i><i class="bear-face"></i></div>
+          <div class="bear-body"></div>
+          <div class="hug-arm"></div>
+        </div>
+        <div class="bear right">
+          <div class="bear-head"><i class="ear left"></i><i class="ear right"></i><i class="bear-face"></i></div>
+          <div class="bear-body"></div>
+          <div class="hug-arm"></div>
+        </div>
+        <span class="heart-kiss">♥</span>
+      </div>
+      <p>Para mi personita especial</p>
+      <button class="start-button" id="start-button" type="button">Iniciar</button>
+    </div>
+  </section>
+  <div class="copyright">Juan Romero</div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x000002);
+    scene.fog = new THREE.FogExp2(0x000002, 0.012);
+
+    const camera = new THREE.PerspectiveCamera(48, innerWidth / innerHeight, .1, 200);
+    camera.position.set(0, 6.8, 15);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    document.body.appendChild(renderer.domElement);
+
+    const controls = {
+      target: new THREE.Vector3(0, 1.5, 0),
+      radius: 15,
+      theta: 0,
+      phi: 1.15,
+      dragging: false,
+      lastX: 0,
+      lastY: 0,
+      update() {
+        camera.position.x = this.target.x + this.radius * Math.sin(this.phi) * Math.sin(this.theta);
+        camera.position.y = this.target.y + this.radius * Math.cos(this.phi);
+        camera.position.z = this.target.z + this.radius * Math.sin(this.phi) * Math.cos(this.theta);
+        camera.lookAt(this.target);
+      }
+    };
+
+    renderer.domElement.addEventListener("pointerdown", (event) => {
+      controls.dragging = true;
+      controls.lastX = event.clientX;
+      controls.lastY = event.clientY;
+      renderer.domElement.setPointerCapture(event.pointerId);
+    });
+
+    renderer.domElement.addEventListener("pointermove", (event) => {
+      if (!controls.dragging) return;
+      controls.theta -= (event.clientX - controls.lastX) * .008;
+      controls.phi = Math.max(.18, Math.min(Math.PI - .18, controls.phi + (event.clientY - controls.lastY) * .008));
+      controls.lastX = event.clientX;
+      controls.lastY = event.clientY;
+    });
+
+    renderer.domElement.addEventListener("pointerup", (event) => {
+      controls.dragging = false;
+      renderer.domElement.releasePointerCapture(event.pointerId);
+    });
+
+    renderer.domElement.addEventListener("wheel", (event) => {
+      event.preventDefault();
+      controls.radius = Math.max(5, Math.min(30, controls.radius * Math.exp(event.deltaY * .001)));
+    }, { passive: false });
+
+    const world = new THREE.Group();
+    scene.add(world);
+    world.visible = false;
+    const revealGeometries = [];
+    const burstGroup = new THREE.Group();
+    scene.add(burstGroup);
+    burstGroup.visible = false;
+    const intro = document.getElementById("intro");
+    const startButton = document.getElementById("start-button");
+    let started = false;
+    let animationPhase = "intro";
+    let explosionStartedAt = 0;
+    let revealStartedAt = 0;
+
+    startButton.addEventListener("click", () => {
+      started = true;
+      animationPhase = "burst";
+      explosionStartedAt = performance.now();
+      burstGroup.visible = true;
+      intro.classList.add("is-hidden");
+    });
+
+    const random = (min, max) => min + Math.random() * (max - min);
+
+    function createBurst() {
+      const count = 2800;
+      const positions = new Float32Array(count * 3);
+      const velocities = new Float32Array(count * 3);
+      const colors = new Float32Array(count * 3);
+      const color = new THREE.Color();
+
+      for (let index = 0; index < count; index++) {
+        const position = index * 3;
+        const angle = Math.random() * Math.PI * 2;
+        const elevation = random(-.9, .9);
+        const speed = random(4, 12);
+        const spread = random(.02, .12);
+        positions[position] = random(-spread, spread);
+        positions[position + 1] = 1.5 + random(-spread, spread);
+        positions[position + 2] = random(-spread, spread);
+        velocities[position] = Math.cos(angle) * Math.cos(elevation) * speed;
+        velocities[position + 1] = Math.sin(elevation) * speed;
+        velocities[position + 2] = Math.sin(angle) * Math.cos(elevation) * speed;
+        color.setHSL(Math.random() < .72 ? random(.86, .98) : random(.1, .16), 1, random(.55, .75));
+        colors[position] = color.r;
+        colors[position + 1] = color.g;
+        colors[position + 2] = color.b;
+      }
+
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+      geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+      const material = new THREE.PointsMaterial({
+        size: .08,
+        vertexColors: true,
+        transparent: true,
+        opacity: 1,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+      const burst = new THREE.Points(geometry, material);
+      burst.userData.velocities = velocities;
+      burstGroup.add(burst);
+      return burst;
+    }
+
+    const burst = createBurst();
+
+    function heartPoint(t) {
+      return {
+        x: 16 * Math.pow(Math.sin(t), 3),
+        y: 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)
+      };
+    }
+
+    function createHeart() {
+      const count = 8200;
+      const positions = new Float32Array(count * 3);
+      const colors = new Float32Array(count * 3);
+      const phases = new Float32Array(count);
+      const pink = new THREE.Color();
+
+      for (let index = 0; index < count; index++) {
+        const t = Math.random() * Math.PI * 2;
+        const point = heartPoint(t);
+        const fill = Math.random() < .38 ? 1 : Math.pow(Math.random(), .72);
+        const position = index * 3;
+        positions[position] = point.x * .23 * fill + random(-.035, .035);
+        positions[position + 1] = point.y * .23 * fill + 4.2 + random(-.035, .035);
+        positions[position + 2] = random(-.16, .16) + (1 - fill) * random(-.22, .22);
+        phases[index] = Math.random() * Math.PI * 2;
+        pink.setHSL(random(.72, .84), .9, random(.48, .7));
+        colors[position] = pink.r;
+        colors[position + 1] = pink.g;
+        colors[position + 2] = pink.b;
+      }
+
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+      geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+      geometry.setDrawRange(0, 0);
+      revealGeometries.push({ geometry, count, delay: .32 });
+      geometry.userData.phases = phases;
+      const material = new THREE.PointsMaterial({
+        size: .075,
+        vertexColors: true,
+        transparent: true,
+        opacity: .95,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        sizeAttenuation: true
+      });
+      const heart = new THREE.Points(geometry, material);
+      heart.name = "heartParticles";
+      world.add(heart);
+      return heart;
+    }
+
+    function createGalaxy() {
+      const count = 10500;
+      const positions = new Float32Array(count * 3);
+      const colors = new Float32Array(count * 3);
+      const palette = [new THREE.Color(0xff2ca9), new THREE.Color(0xff8acb), new THREE.Color(0xffc52d), new THREE.Color(0xfff1a1)];
+
+      for (let index = 0; index < count; index++) {
+        const arm = index % 4;
+        const radius = Math.pow(Math.random(), .62) * 10.5;
+        const angle = radius * .48 + arm * Math.PI / 2 + random(-.28, .28);
+        const thickness = Math.pow(Math.random(), 2) * .48;
+        const position = index * 3;
+        positions[position] = Math.cos(angle) * radius;
+        positions[position + 1] = random(-thickness, thickness) + random(-.08, .08);
+        positions[position + 2] = Math.sin(angle) * radius;
+        const color = palette[Math.random() < .82 ? Math.floor(Math.random() * 2) : Math.floor(random(2, 4))];
+        colors[position] = color.r;
+        colors[position + 1] = color.g;
+        colors[position + 2] = color.b;
+      }
+
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+      geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+      geometry.setDrawRange(0, 0);
+      revealGeometries.push({ geometry, count, delay: 0 });
+      const material = new THREE.PointsMaterial({
+        size: .055,
+        vertexColors: true,
+        transparent: true,
+        opacity: .82,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        sizeAttenuation: true
+      });
+      const galaxy = new THREE.Points(geometry, material);
+      galaxy.name = "galaxyParticles";
+      world.add(galaxy);
+      return galaxy;
+    }
+
+    function createStars() {
+      const count = 2600;
+      const positions = new Float32Array(count * 3);
+      for (let index = 0; index < count * 3; index += 3) {
+        positions[index] = random(-45, 45);
+        positions[index + 1] = random(-28, 28);
+        positions[index + 2] = random(-45, 45);
+      }
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+      const material = new THREE.PointsMaterial({
+        color: 0xffd5f7,
+        size: .035,
+        transparent: true,
+        opacity: .65,
+        depthWrite: false
+      });
+      scene.add(new THREE.Points(geometry, material));
+    }
+
+    function createAccretionDisk() {
+      const group = new THREE.Group();
+      group.rotation.x = Math.PI / 2;
+      const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(3.8, .16, 16, 160),
+        new THREE.MeshBasicMaterial({ color: 0xffcf35, transparent: true, opacity: .95 })
+      );
+      group.add(ring);
+
+      for (let index = 0; index < 5; index++) {
+        const torus = new THREE.Mesh(
+          new THREE.TorusGeometry(3.1 + index * .36, .025 + index * .014, 8, 128),
+          new THREE.MeshBasicMaterial({
+            color: index % 2 ? 0xff4ba9 : 0xffe87e,
+            transparent: true,
+            opacity: .45
+          })
+        );
+        group.add(torus);
+      }
+      world.add(group);
+    }
+
+    function createCore() {
+      const core = new THREE.Mesh(
+        new THREE.SphereGeometry(1.72, 48, 48),
+        new THREE.MeshBasicMaterial({ color: 0x000000 })
+      );
+      core.position.y = 0;
+      world.add(core);
+
+      const glow = new THREE.Mesh(
+        new THREE.SphereGeometry(2.08, 32, 32),
+        new THREE.MeshBasicMaterial({ color: 0xff168f, transparent: true, opacity: .08, blending: THREE.AdditiveBlending })
+      );
+      world.add(glow);
+    }
+
+    function createFloatingText(text, position, color, size = 2.35) {
+      const canvas = document.createElement("canvas");
+      canvas.width = 768;
+      canvas.height = 128;
+      const context = canvas.getContext("2d");
+      context.font = "600 38px 'Palatino Linotype', 'Book Antiqua', Georgia, serif";
+      context.textAlign = "center";
+      context.textBaseline = "middle";
+      context.shadowColor = color;
+      context.shadowBlur = 14;
+      const gradient = context.createLinearGradient(180, 0, 588, 0);
+      gradient.addColorStop(0, "#ff9bdc");
+      gradient.addColorStop(.5, color);
+      gradient.addColorStop(1, "#ffe29a");
+      context.fillStyle = gradient;
+      context.fillText(text, 384, 64);
+      const texture = new THREE.CanvasTexture(canvas);
+      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, opacity: .92, depthWrite: false, depthTest: false }));
+      sprite.position.set(...position);
+      sprite.scale.set(size, size * .18, 1);
+      world.add(sprite);
+    }
+
+    function createHeartDoodle(position, size, color) {
+      const canvas = document.createElement("canvas");
+      canvas.width = 160;
+      canvas.height = 160;
+      const context = canvas.getContext("2d");
+      context.translate(80, 82);
+      context.scale(4.2, 4.2);
+      context.beginPath();
+      context.moveTo(0, 12);
+      context.bezierCurveTo(-22, -2, -14, -18, 0, -8);
+      context.bezierCurveTo(14, -18, 22, -2, 0, 12);
+      context.strokeStyle = color;
+      context.lineWidth = 2.2;
+      context.shadowColor = color;
+      context.shadowBlur = 8;
+      context.stroke();
+      context.fillStyle = color;
+      context.globalAlpha = .8;
+      context.fillRect(-28, -20, 2, 2);
+      context.fillRect(25, -13, 2, 2);
+      context.fillRect(20, 16, 2, 2);
+      const texture = new THREE.CanvasTexture(canvas);
+      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, opacity: .92, depthWrite: false, depthTest: false }));
+      sprite.position.set(...position);
+      sprite.scale.set(size, size, 1);
+      world.add(sprite);
+    }
+
+    function createMessageMedallion(text, position, size, accent) {
+      const canvas = document.createElement("canvas");
+      canvas.width = 220;
+      canvas.height = 220;
+      const context = canvas.getContext("2d");
+      context.translate(110, 110);
+      context.beginPath();
+      context.arc(0, 0, 88, 0, Math.PI * 2);
+      context.fillStyle = "rgba(255, 250, 245, .94)";
+      context.fill();
+      context.strokeStyle = accent;
+      context.lineWidth = 5;
+      context.stroke();
+      context.font = "700 18px 'Palatino Linotype', Georgia, serif";
+      context.textAlign = "center";
+      context.textBaseline = "middle";
+      context.fillStyle = "#29152b";
+      const words = text.split(" ");
+      const lines = [];
+      let line = "";
+      for (const word of words) {
+        const next = line ? `${line} ${word}` : word;
+        if (context.measureText(next).width > 125 && line) {
+          lines.push(line);
+          line = word;
+        } else {
+          line = next;
+        }
+      }
+      lines.push(line);
+      lines.slice(0, 3).forEach((entry, index) => context.fillText(entry, 0, -12 + index * 22));
+      context.fillStyle = accent;
+      context.font = "24px Georgia";
+      context.fillText("♥", 0, 58);
+      const texture = new THREE.CanvasTexture(canvas);
+      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false, depthTest: false }));
+      sprite.position.set(...position);
+      sprite.scale.set(size, size, 1);
+      world.add(sprite);
+    }
+
+    const heart = createHeart();
+    const galaxy = createGalaxy();
+    createStars();
+    createAccretionDisk();
+    createCore();
+    const orbitPhrases = [
+      "TE AMO", "MI TODO", "SIEMPRE TU", "ERES MI PAZ", "MI CIELO", "LOVE",
+      "MI PERSONA FAVORITA", "QUE BONITO COINCIDIR", "HASTA LAS ESTRELLAS", "TU Y YO",
+      "MI CALMA", "ERES MI LUGAR FAVORITO", "PARA SIEMPRE", "MI CORAZON", "TE ELIJO",
+      "CONTIGO TODO ES BONITO", "MI AMOR", "MI VIDA", "SONRIE CONMIGO", "ERES MAGIA",
+      "ME ENCANTAS", "SIEMPRE JUNTOS", "MI ESTRELLA", "TE QUIERO INFINITO"
+    ];
+    orbitPhrases.forEach((phrase, index) => {
+      const angle = index / orbitPhrases.length * Math.PI * 2;
+      const radius = 8.7 + Math.sin(index * 2.4) * .55;
+      const position = [Math.cos(angle) * radius, .45 + Math.sin(index * 1.7) * .55, Math.sin(angle) * radius];
+      createFloatingText(phrase, position, index % 3 === 0 ? "#ffe29a" : "#ffb7e8", 3.15);
+    });
+
+    [
+      [0, 2.45, 0, .65, "#b86cff"],
+      [6.7, 1.35, -2.2, .78, "#d7a2ff"],
+      [-6.8, 1.1, -1.8, .78, "#9254e8"],
+      [7.2, -.5, 1.8, .72, "#e0b8ff"],
+      [-7.1, -.65, 1.7, .72, "#a879ff"]
+    ].forEach(([x, y, z, size, color]) => createHeartDoodle([x, y, z], size, color));
+
+    [
+      [7.4, 1.85, .6, .95, "ERES MI PAZ", "#b86cff"],
+      [-7.5, 1.5, -.4, .95, "TE AMO MUCHO", "#d7a2ff"],
+      [6.8, -.85, -1.8, .85, "MI PERSONA FAVORITA", "#9254e8"],
+      [-6.7, -.95, 1.9, .85, "SIEMPRE JUNTOS", "#e0b8ff"],
+      [0, 2.85, 2.5, .82, "MI CIELO", "#a879ff"],
+      [0, -1.65, -3.2, .82, "TU Y YO", "#c58aff"]
+    ].forEach(([x, y, z, size, text, color]) => createMessageMedallion(text, [x, y, z], size, color));
+
+    const clock = new THREE.Clock();
+    function animate() {
+      const elapsed = clock.getElapsedTime();
+      if (started && animationPhase === "burst") {
+        const progress = Math.min(1, (performance.now() - explosionStartedAt) / 1500);
+        const burstEase = 1 - Math.pow(1 - progress, 2);
+        const positions = burst.geometry.attributes.position.array;
+        const velocities = burst.userData.velocities;
+        for (let index = 0; index < positions.length; index += 3) {
+          positions[index] = velocities[index] * burstEase;
+          positions[index + 1] = 1.5 + velocities[index + 1] * burstEase - progress * progress * 2;
+          positions[index + 2] = velocities[index + 2] * burstEase;
+        }
+        burst.geometry.attributes.position.needsUpdate = true;
+        burst.material.opacity = 1 - progress;
+
+        if (progress === 1) {
+          animationPhase = "reveal";
+          revealStartedAt = performance.now();
+          burstGroup.visible = false;
+          world.visible = true;
+        }
+      }
+
+      if (started && animationPhase === "reveal") {
+        const progress = Math.min(1, (performance.now() - revealStartedAt) / 2200);
+        revealGeometries.forEach(({ geometry, count, delay }) => {
+          const localProgress = Math.max(0, Math.min(1, (progress - delay) / (1 - delay)));
+          const eased = 1 - Math.pow(1 - localProgress, 2.4);
+          geometry.setDrawRange(0, Math.floor(count * eased));
+        });
+      }
+      galaxy.rotation.y = elapsed * .055;
+      heart.rotation.y = Math.sin(elapsed * .35) * .08;
+      heart.position.y = Math.sin(elapsed * 1.2) * .08;
+      heart.material.size = .07 + Math.sin(elapsed * 2) * .008;
+      controls.update();
+      renderer.render(scene, camera);
+      requestAnimationFrame(animate);
+    }
+
+    window.addEventListener("resize", () => {
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+      renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    });
+
+    animate();
+  </script>
+</body>
+</html>
