@@ -24,6 +24,9 @@
       display: block;
       width: 100%;
       height: 100%;
+      /* Sin esto el navegador se queda con el gesto tactil (scroll / zoom)
+         y el arrastre del 360 llega cortado o no llega en el movil. */
+      touch-action: none;
     }
 
     .copyright {
@@ -266,25 +269,69 @@
       }
     };
 
+    // Control 360: se siguen todos los punteros activos. Un dedo gira la
+    // camara y dos dedos hacen pinch para acercar/alejar. Antes solo se
+    // seguia un puntero y no habia handler de pointercancel: en el movil el
+    // navegador cancelaba el gesto y el arrastre se quedaba atascado.
+    const activePointers = new Map();
+    let lastPinchDistance = 0;
+
+    function pinchDistance() {
+      const points = [...activePointers.values()];
+      if (points.length < 2) return 0;
+      const dx = points[0].x - points[1].x;
+      const dy = points[0].y - points[1].y;
+      return Math.hypot(dx, dy);
+    }
+
     renderer.domElement.addEventListener("pointerdown", (event) => {
-      controls.dragging = true;
-      controls.lastX = event.clientX;
-      controls.lastY = event.clientY;
+      activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      if (activePointers.size === 1) {
+        controls.dragging = true;
+        controls.lastX = event.clientX;
+        controls.lastY = event.clientY;
+      } else if (activePointers.size === 2) {
+        controls.dragging = false;
+        lastPinchDistance = pinchDistance();
+      }
       renderer.domElement.setPointerCapture(event.pointerId);
     });
 
     renderer.domElement.addEventListener("pointermove", (event) => {
-      if (!controls.dragging) return;
-      controls.theta -= (event.clientX - controls.lastX) * .008;
-      controls.phi = Math.max(.18, Math.min(Math.PI - .18, controls.phi + (event.clientY - controls.lastY) * .008));
-      controls.lastX = event.clientX;
-      controls.lastY = event.clientY;
+      if (!activePointers.has(event.pointerId)) return;
+      activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      if (activePointers.size === 1 && controls.dragging) {
+        controls.theta -= (event.clientX - controls.lastX) * .008;
+        controls.phi = Math.max(.18, Math.min(Math.PI - .18, controls.phi + (event.clientY - controls.lastY) * .008));
+        controls.lastX = event.clientX;
+        controls.lastY = event.clientY;
+      } else if (activePointers.size === 2) {
+        const distance = pinchDistance();
+        if (lastPinchDistance > 0 && distance > 0) {
+          controls.radius = Math.max(5, Math.min(30, controls.radius * (lastPinchDistance / distance)));
+        }
+        lastPinchDistance = distance;
+      }
     });
 
-    renderer.domElement.addEventListener("pointerup", (event) => {
-      controls.dragging = false;
-      renderer.domElement.releasePointerCapture(event.pointerId);
-    });
+    function endPointer(event) {
+      activePointers.delete(event.pointerId);
+      if (activePointers.size === 0) {
+        controls.dragging = false;
+        lastPinchDistance = 0;
+      } else if (activePointers.size === 1) {
+        const remaining = [...activePointers.values()][0];
+        controls.dragging = true;
+        controls.lastX = remaining.x;
+        controls.lastY = remaining.y;
+      }
+      if (renderer.domElement.hasPointerCapture(event.pointerId)) {
+        renderer.domElement.releasePointerCapture(event.pointerId);
+      }
+    }
+
+    renderer.domElement.addEventListener("pointerup", endPointer);
+    renderer.domElement.addEventListener("pointercancel", endPointer);
 
     renderer.domElement.addEventListener("wheel", (event) => {
       event.preventDefault();
